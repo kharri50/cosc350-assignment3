@@ -1,9 +1,12 @@
 package com.networking;
 
+import javax.swing.text.html.HTMLDocument;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Iterator;
 import java.util.Scanner;
+import java.util.stream.Stream;
 
 
 /**
@@ -26,13 +29,18 @@ class TCPKRServer {
     static int[][] rtEntries = {};
 
     public static void main(String argv[]) throws Exception {
-        String clientSentence;
-        String capitalizedSentence;
+
 
 
         ServerSocket welcomeSocket = new ServerSocket(12121);
         readStartUpFile();
-        printServerConfig();
+       // printServerConfig();
+
+
+
+        /* just so we don't have to send multiple messages, we're going
+         to send all of the client data in one message..*/
+        String clientData = "";
         while (true) {
 
             Socket connectionSocket = welcomeSocket.accept();
@@ -40,15 +48,20 @@ class TCPKRServer {
             BufferedReader inFromClient =
                     new BufferedReader(new InputStreamReader(connectionSocket.getInputStream()));
 
-            DataOutputStream outToClient =
-                    new DataOutputStream(connectionSocket.getOutputStream());
+            /*DataOutputStream outToClient =
+                    new DataOutputStream(connectionSocket.getOutputStream());*/
+            Stream<String> data = inFromClient.lines();
+            Iterator <String> dataItr = data.iterator();
+            // printing the data via the iterator
 
-            clientSentence = inFromClient.readLine();
-
-            capitalizedSentence = clientSentence.toUpperCase() + '\n';
-
-            outToClient.writeBytes(capitalizedSentence);
+            while(dataItr.hasNext()){
+                clientData+=dataItr.next().toString()+"\n";
+               // System.out.println(dataItr.next().toString());
+            }
+            break;
         }
+        System.out.println("Client data : \n" + clientData);
+
     }
 
     public static void readStartUpFile() {

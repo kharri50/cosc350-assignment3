@@ -21,29 +21,24 @@ class TCPKRClient {
         readStartUpFile();
         printClientConfig();
 
-        String sentence;
         String modifiedSentence;
 
 
-        BufferedReader inFromUser =
-                new BufferedReader(new InputStreamReader(System.in));
+       /* BufferedReader inFromUser =
+                new BufferedReader(new InputStreamReader(System.in));*/
 
         Socket clientSocket = new Socket("localhost", 12121);
 
         DataOutputStream outToServer =
                 new DataOutputStream(clientSocket.getOutputStream());
 
-        BufferedReader inFromServer =
-                new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+       /* BufferedReader inFromServer =
+                new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));*/
 
-        sentence = inFromUser.readLine();
 
-        outToServer.writeBytes(sentence + '\n');
-
-        modifiedSentence = inFromServer.readLine();
-
-        System.out.println("FROM SERVER: " + modifiedSentence);
-
+        // getting the node number to send it to the server
+        System.out.println("Sending data: " + genClientData());
+        outToServer.writeBytes(genClientData());
         clientSocket.close();
 
     }
@@ -92,6 +87,7 @@ class TCPKRClient {
     }
 
     public static void printClientConfig(){
+
         // this prints the current server configuration
         System.out.println("Client Node number : " + nodeNum);
         System.out.println("Num DVR entries : " + numDvrEntries);
@@ -105,4 +101,24 @@ class TCPKRClient {
         }
 
     }
+    
+    public static String genClientData() {
+    	String clientData = "";
+    	clientData+=nodeNum+"\n"+numDvrEntries+"\n";
+    	
+    	// loop for the number of dvr entries
+    	 for(int i =0; i<dvrEntries.length; i++){
+    		 String tempDvr = "";
+             // now loop again
+             for(int j = 0; j<dvrEntries[i].length; j++){
+                 //System.out.print(dvrEntries[i][j] + " ");
+                 tempDvr+=dvrEntries[i][j]+" ";
+             }
+            // System.out.println("");
+             tempDvr+="\n";
+             clientData+=tempDvr;
+         }
+     return clientData;
+    }
+    
 }
