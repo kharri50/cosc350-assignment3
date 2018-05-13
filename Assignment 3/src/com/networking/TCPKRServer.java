@@ -28,6 +28,61 @@ class TCPKRServer {
     static int numRtEntries = 0;
     static int[][] rtEntries = {};
 
+    static DvrClient client;
+
+    static class DvrClient{
+        int nodeNum;
+        int numDvrEntries;
+        int [][] entires;
+
+        public DvrClient(String clientData){
+            // we're going to split the string line by line to parse it
+            String [] splitData = clientData.split("\n");
+
+
+            int entryIndex = 0;
+
+            for(int i = 0; i<splitData.length; i++){
+                if(i==0){
+                    nodeNum = Integer.parseInt(splitData[i]);
+                }else if (i==1){
+                    numDvrEntries = Integer.parseInt(splitData[i]);
+                    entires = new int [numDvrEntries][2];
+                }else if (i>1){
+                    //System.out.println("NUM Entries : " + numDvrEntries);
+                    //System.out.println("DVR Entry : " + splitData[i]);
+                    String [] splitDvr = splitData[i].split(" ");
+                    entires[entryIndex][0]=Integer.parseInt(splitDvr[0]);
+                    entires[entryIndex][1]=Integer.parseInt(splitDvr[1]);
+                    entryIndex++;
+                }
+            }
+        }
+
+        public void printData(){
+            System.out.println("Node num : " + this.nodeNum);
+            System.out.println("DVR Entries  : " + this.numDvrEntries);
+            for(int i = 0; i<this.entires.length; i++){
+                for(int j =0; j<this.entires[i].length; j++){
+                    System.out.print(this.entires[i][j]+" ");
+                }
+                System.out.println(" ");
+            }
+        }
+
+        public int getNodeNum(){
+            return this.nodeNum;
+        }
+
+        public int getNumDvrEntries(){
+            return this.numDvrEntries;
+        }
+
+        public int [] [] getDVREntries(){
+            return this.entires;
+        }
+    }
+
     public static void main(String argv[]) throws Exception {
 
 
@@ -43,6 +98,7 @@ class TCPKRServer {
         String clientData = "";
         while (true) {
 
+            clientData = "";
             Socket connectionSocket = welcomeSocket.accept();
 
             BufferedReader inFromClient =
@@ -58,12 +114,27 @@ class TCPKRServer {
                 clientData+=dataItr.next().toString()+"\n";
                // System.out.println(dataItr.next().toString());
             }
-            break;
+            client = new DvrClient(clientData);
+
+            System.out.println("Client data : \n");
+            client.printData();
+           // int [] [] cleintE = client.getDVREntries();
+            updateDVR();
+            printRoutingTable();
+
         }
-        System.out.println("Client data : \n" + clientData);
 
     }
 
+    public static void printRoutingTable(){
+        System.out.println("Routing table :\n");
+        for(int i =0; i<rtEntries.length; i++){
+            for(int j = 0; j<rtEntries[i].length; j++){
+                System.out.print(rtEntries[i][j]+" ");
+            }
+            System.out.println(" ");
+        }
+    }
     public static void readStartUpFile() {
         Scanner sc = new Scanner(System.in);
         System.out.println("Please enter a filename for server startup");
@@ -149,6 +220,43 @@ class TCPKRServer {
                 System.out.print(rtEntries[i][k] + " ");
             }
             System.out.println("");
+        }
+    }
+
+    public static void updateDVR(){
+        // for each entry in the message
+        // get the client entries
+
+        int maxDist = -999;
+
+        int [][] clientEntries = client.getDVREntries();
+        // for each entry in the server routing table
+        for(int x = 0; x<rtEntries.length; x++) {
+
+            // for each entry in the message
+            for (int i = 0; i < clientEntries.length; i++) {
+                // let V be the destination in the entry
+                int v = clientEntries[i][0];
+                // let D be the distance
+                int d = clientEntries[i][1];
+                // compute C ad D plus the weight of the current link
+                int c = d+rtEntries[x][0];
+
+                // now examine and update the local routing table
+
+                // if no route exists
+                if(v == rtEntries[x][0]){
+                        break;
+                }else if(clientEntries[i][0] != rtEntries[x][0]){
+                   // now update the table
+                    if(rtEntries[x][2] >= maxDist+clientEntries[i][1]){
+                        rtEntries[x][i] = v;
+                    }
+                    rtEntries[x][2] = maxDist+clientEntries[i][1];
+                }
+
+
+            }
         }
     }
 }

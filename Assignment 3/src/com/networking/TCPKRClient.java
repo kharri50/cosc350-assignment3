@@ -21,11 +21,6 @@ class TCPKRClient {
         readStartUpFile();
         printClientConfig();
 
-        String modifiedSentence;
-
-
-       /* BufferedReader inFromUser =
-                new BufferedReader(new InputStreamReader(System.in));*/
 
         Socket clientSocket = new Socket("localhost", 12121);
 
