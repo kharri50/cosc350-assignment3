@@ -4,9 +4,12 @@ import javax.swing.text.html.HTMLDocument;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Scanner;
 import java.util.stream.Stream;
+import java.util.Set;
 
 
 /**
@@ -24,9 +27,9 @@ class TCPKRServer {
      */
     static int nodeNum = 0;
     static int numEdgeWeights = 0;
-    static int[][] weights = {};
+    static int [][] weights = {};
     static int numRtEntries = 0;
-    static int[][] rtEntries = {};
+    static int [][] rtEntries = {};
 
     static DvrClient client;
 
@@ -119,7 +122,7 @@ class TCPKRServer {
             System.out.println("Client data : \n");
             client.printData();
            // int [] [] cleintE = client.getDVREntries();
-            updateDVR();
+            updateDVR(client.getNodeNum());
             printRoutingTable();
 
         }
@@ -223,40 +226,135 @@ class TCPKRServer {
         }
     }
 
-    public static void updateDVR(){
+    public static void updateDVR(int nodeDest){
         // for each entry in the message
         // get the client entries
 
-        int maxDist = -999;
 
         int [][] clientEntries = client.getDVREntries();
         // for each entry in the server routing table
-        for(int x = 0; x<rtEntries.length; x++) {
 
             // for each entry in the message
+            int nodeWeight = 0;
             for (int i = 0; i < clientEntries.length; i++) {
-                // let V be the destination in the entry
-                int v = clientEntries[i][0];
-                // let D be the distance
-                int d = clientEntries[i][1];
-                // compute C ad D plus the weight of the current link
-                int c = d+rtEntries[x][0];
+               /* for each entry in the client message, put a new row
+                * in the RT table and initially put them all to zero */
 
-                // now examine and update the local routing table
+               /* If the node doesn't exist in the table, put in a new entry
+                   and copy the table
+                */
 
-                // if no route exists
-                if(v == rtEntries[x][0]){
-                        break;
-                }else if(clientEntries[i][0] != rtEntries[x][0]){
-                   // now update the table
-                    if(rtEntries[x][2] >= maxDist+clientEntries[i][1]){
-                        rtEntries[x][i] = v;
+               int dest = clientEntries[i][0];
+               int cost = clientEntries[i][1];
+               // check if the current table has the destination
+
+                if(inTable(dest)){
+
+                    if (pathExists(dest) && dest == nodeDest) {
+                    /* This is a special case */
+                        nodeWeight = getNodeWeight(dest);
                     }
-                    rtEntries[x][2] = maxDist+clientEntries[i][1];
+                    //System.out.println("In table, not adding!");
+                    // now get the cost of the current element
+                    int currentCost = rtEntries[getIndex(dest)][2];
+                    System.out.println("Node weight : " + nodeWeight);
+                    if((cost+nodeWeight) < currentCost){
+                        // update the row
+                        updateRow(dest, nodeDest, cost+nodeWeight);
+                    }
+
+                }else {
+                    // if the destination equals a path, set the node weight
+                    if (pathExists(dest) && dest == nodeDest) {
+                    /* This is a special case */
+                        nodeWeight = getNodeWeight(dest);
+                        putRow(nodeDest, nodeDest, nodeWeight);
+
+                    } else if (pathExists(dest) && dest == nodeDest) {
+                        putRow(dest, dest, nodeWeight);
+                    } else {
+                        //it doesn't contain the path so put the node weight in
+                        putRow(dest, nodeDest, (clientEntries[i][1] + nodeWeight));
+                    }
                 }
+        }
 
+        printRoutingTable();
+       // printRoutingTable();
 
+    }
+
+    public static void putRow(int destination, int hop, int weight){
+        // copy the entries
+        int [] [] tempRt = rtEntries;
+        int [] [] newRt = new int[rtEntries.length+1][3];
+        int len = tempRt.length;
+        for(int i = 0; i<tempRt.length; i++){
+            // copy the row
+            for(int j = 0; j<tempRt[i].length; j++){
+                newRt[i][j] = tempRt[i][j];
             }
         }
+        // put in a new row with the destination and next hop
+        newRt[len][0]=destination;
+        newRt[len][1]=hop;
+        newRt[len][2]=weight;
+        rtEntries  = newRt;
+    }
+
+    public static boolean containsDest(int destination){
+        for(int i = 0; i<rtEntries.length; i++){
+            if(rtEntries[i][0] == destination){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static boolean pathExists(int dest){
+        // check if the server has the destination
+        for(int i = 0; i<weights.length; i++){
+            if(weights[i][0]==dest){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static int getNodeWeight(int dest){
+        for(int i = 0; i<weights.length; i++){
+            if(weights[i][0]==dest){
+                return weights[i][1];
+            }
+        }
+        return -1; // invalid weight
+    }
+
+    public static void updateRow(int dest, int hop, int cost){
+       for(int i = 0; i<rtEntries.length; i++){
+           if(rtEntries[i][0]==dest){
+               // update the hop and cost
+               rtEntries[i][1] = hop;
+               rtEntries[i][2] = cost;
+           }
+       }
+    }
+
+    public static boolean inTable(int node){
+        for(int i  = 0; i<rtEntries.length; i++){
+           if(rtEntries[i][0] == node){
+               return true;
+           }
+        }
+        return false;
+    }
+
+    public static int getIndex(int node){
+        for(int i  = 0; i<rtEntries.length; i++){
+            if(rtEntries[i][0] == node){
+                return i;
+            }
+        }
+        return -1;
     }
 }
